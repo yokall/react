@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use DBI;
+use Mojolicious::Lite;
+use URI::Escape;
+
+get '/' => sub {
+    my $c = shift;
+    $c->render(text => qq|
+        <h1>API routes:</h1>
+    |, format => 'html');
+};
+
+get '/logs' => sub {
+    my $c = shift;
+
+    my $dbh = DBI->connect('DBI:mysql:proxy', 'scribe', 'bede' ) or die $DBI::errstr;
+    my $sql = 'SELECT * FROM logs';
+    my $sth = $dbh->prepare($sql);
+    $sth->execute();
+
+    my $results = $sth->fetchall_hashref('_id');
+
+    my @logs = ();
+    foreach my $id (sort keys %{$results}) {
+        push @logs, $results->{$id};
+    }
+
+    $c->res->headers->header('Access-Control-Allow-Origin' => '*');
+    $c->render(json => \@logs, status => 200);
+};
+
+app->start;
