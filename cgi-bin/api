@@ -17,10 +17,22 @@ get '/' => sub {
 get '/logs' => sub {
     my $c = shift;
 
+    my $where = '';
+
+    my @params;
+    my $identifier = $c->req->query_params->param('identifier');
+
+    if ($identifier) {
+        push @params, $identifier;
+        $where = ' WHERE MATCH(identifier) AGAINST(?)';
+    }
+
     my $dbh = DBI->connect('DBI:mysql:proxy', 'scribe', 'bede' ) or die $DBI::errstr;
-    my $sql = 'SELECT * FROM logs';
+
+    my $sql = 'SELECT * FROM logs'.$where;
+
     my $sth = $dbh->prepare($sql);
-    $sth->execute();
+    $sth->execute(@params);
 
     my $results = $sth->fetchall_hashref('_id');
 
